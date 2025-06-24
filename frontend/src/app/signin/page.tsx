@@ -22,7 +22,7 @@ export default function SignInPage() {
         className="flex items-center space-x-2 bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-lg shadow-md"
       >
         <img
-          src="/google-icon.svg"
+          src="https://developers.google.com/identity/images/g-logo.png"
           alt="Google logo"
           className="w-5 h-5"
         />
