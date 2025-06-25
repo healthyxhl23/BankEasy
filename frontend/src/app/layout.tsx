@@ -13,7 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <nav className="bg-white shadow p-4 flex justify-between items-center">
             <h1 className="text-2xl font-bold text-green-600">BankEasy</h1>
             <ul className="flex space-x-4">
-              <li><Link href="/">Home</Link></li>
+              <li><Link href="/home">Home</Link></li>
               <li><Link href="/signin">Sign In</Link></li>
             </ul>
           </nav>
