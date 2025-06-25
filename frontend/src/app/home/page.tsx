@@ -1,72 +1,191 @@
+// app/home/page.tsx
 'use client';
 
-import { useSession } from 'next-auth/react';
-import { useEffect, useState } from 'react';
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 export default function HomePage() {
-  //Get current user session and status (loading, authenticated, unauthenticated)
   const { data: session, status } = useSession();
-  //Router for client-side navigation
   const router = useRouter();
+  const [greeting, setGreeting] = useState('');
+  const [isOnboarded, setIsOnboarded] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  //Redirect to /signin if user is NOT authenticated
   useEffect(() => {
-    if(status == "unauthenticated"){
-      router.push('/');
+    if (status === 'loading') return;
+    if (!session) {
+      router.push('/signin');
+      return;
     }
-  }, [status]);
 
-  const [accounts, setAccounts] = useState([{name: "Checking", balance: {current: 1787.76}}]);
-  const [transactions, setTransactions] = useState([{name: "Starbucks's 84127 432-324-212 Ca", amount: 5.75, date: "2025-06-22", translation: "$5.75 spent at Starbucks coffee shop in California on June 22, 2025."},
-    {name: "Amazon", amount: 29.99, date: "2025-05-31", translation: "$29.99 purchase from Amazon on May 31, 2025"},
-    {name: "US TREASURY 310 XXSOC SEC", amount: 1823.50, date: "2025-05-01", translation: "$1,823.50 Social Security income deposited from the U.S. Treasury on May 1, 2025" }
-  ]);
+    // Set greeting based on time of day
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting('Good morning');
+    else if (hour < 18) setGreeting('Good afternoon');
+    else setGreeting('Good evening');
 
-  return(
-    <main className='bg-gray-50 p-6 max-w-4xl mx-auto space-y-6'>
-      <h1 className="text-3xl font-bold text-center">Welcome back!</h1>
+    // Check profile status
+    checkProfile();
+  }, [session, status, router]);
 
-      {/*Accounts Summary*/}
-      <section className= "bg-white shadow p-4 rounded-xl">
-        <h2 className="text-xl font-semibold mb-2">
-          Accounts Summary
-        </h2>
-        {accounts.map((acct, i) => (
-          <div key={i} className="flex justify-between">
-            <span>{acct.name}</span>
-            <span>${acct.balance.current}</span>
-          </div>
-        )
-        )}
-      </section>
+  const checkProfile = async () => {
+    try {
+      const res = await fetch('/api/user/check-profile');
+      const data = await res.json();
+      
+      if (data.newUser || !data.onboarded) {
+        // Redirect to onboarding if new user or not onboarded
+        router.push('/onboarding');
+      } else {
+        setIsOnboarded(data.onboarded);
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Error checking profile:', error);
+      setLoading(false);
+    }
+  };
 
-      {/*Low Balance Forecast Alert*/}
-      <section className="bg-orange-100 border-l-4 p-4 border-orange-600 rounded-md shadow-md max-w-4xl mx-auto">
-        <h2 className="font-semibold text-orange-700 mb-1">Low Balance Forecast Alert</h2>
-        <p className="text-black">
-          Your <strong>Checking Account</strong> balance is predicted to fall below <strong>$100</strong> in <strong>3 days</strong>. Please review your upcoming expenses.
+  if (status === 'loading' || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return null;
+  }
+
+  const features = [
+    {
+      title: 'View Transactions',
+      description: 'See all your bank transactions in one place',
+      icon: '💳',
+      href: '/transactions',
+                    available: isOnboarded,
+    },
+    {
+      title: 'Balance Forecast',
+      description: 'Predict your future balance based on spending patterns',
+      icon: '📊',
+      href: '/forecast',
+      available: session.user.onboarded,
+    },
+    {
+      title: 'Voice Assistant',
+      description: 'Ask questions about your finances using voice',
+      icon: '🎤',
+      href: '/assistant',
+      available: true,
+    },
+    {
+      title: 'Profile Settings',
+      description: 'Manage your account and preferences',
+      icon: '⚙️',
+      href: '/settings',
+      available: true,
+    },
+  ];
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          {greeting}, {session.user.name?.split(' ')[0] || 'there'}! 👋
+        </h1>
+        <p className="text-gray-600">
+          {session.user.onboarded 
+            ? "Here's your financial overview"
+            : "Complete your setup to access all features"}
         </p>
-      </section>
+      </div>
 
-      {/*Recent Transactions*/}
-      <section className="bg-white shadow p-4 rounded-xl ">
-        <h2 className="text-xl font-semibold mb-2">
-          Recent Transactions
-        </h2>
-        <ul className="space-y-2">
-          {transactions.map((tran, i) => (
-          <li key={i} className="flex justify-between items-center border-b border-gray-200 pb-3 mb-3">
-            <div className="flex flex-col">
-              <p className="font-medium">{tran.name}</p>
-              <p className="text-sm text-gray-600">{tran.date}</p>
-              <p className="text-sm italic text-gray-500 mt-1">→ {tran.translation}</p>
+      {/* Alert for non-onboarded users */}
+      {!isOnboarded && (
+        <div className="mb-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <span className="text-2xl mr-3">⚠️</span>
+            <div>
+              <h3 className="font-semibold text-yellow-800">Complete Your Setup</h3>
+              <p className="text-yellow-700 text-sm mt-1">
+                Connect your bank account to unlock transaction tracking and balance forecasting.
+              </p>
+              <Link href="/onboarding">
+                <button className="mt-2 text-sm bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
+                  Complete Setup
+                </button>
+              </Link>
             </div>
-            <div className="font-medium">${tran.amount}</div>
-          </li>
-          ))}
-        </ul>
-      </section>
-    </main>
-  )
+          </div>
+        </div>
+      )}
+
+      {/* Quick Stats (only for onboarded users) */}
+      {isOnboarded && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-sm font-medium text-gray-500 mb-2">Current Balance</h3>
+            <p className="text-2xl font-bold text-green-600">$5,432.00</p>
+            <p className="text-sm text-gray-500 mt-1">↑ 2.3% from last month</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-sm font-medium text-gray-500 mb-2">Monthly Spending</h3>
+            <p className="text-2xl font-bold text-blue-600">$1,234.00</p>
+            <p className="text-sm text-gray-500 mt-1">23 transactions</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-sm font-medium text-gray-500 mb-2">Savings Goal</h3>
+            <p className="text-2xl font-bold text-purple-600">68%</p>
+            <p className="text-sm text-gray-500 mt-1">$3,400 of $5,000</p>
+          </div>
+        </div>
+      )}
+
+      {/* Features Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {features.map((feature) => (
+          <Link
+            key={feature.title}
+            href={feature.available ? feature.href : '#'}
+            className={feature.available ? '' : 'cursor-not-allowed'}
+          >
+            <div
+              className={`bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow
+                ${!feature.available ? 'opacity-50' : 'hover:translate-y-[-2px]'}`}
+            >
+              <div className="flex items-start">
+                <span className="text-3xl mr-4">{feature.icon}</span>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold mb-2">
+                    {feature.title}
+                    {!feature.available && (
+                      <span className="ml-2 text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
+                        Requires bank connection
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-gray-600 text-sm">{feature.description}</p>
+                </div>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* Sign Out Button */}
+      <div className="mt-12 text-center">
+        <button
+          onClick={() => signOut({ callbackUrl: '/' })}
+          className="text-gray-500 hover:text-gray-700 text-sm"
+        >
+          Sign Out
+        </button>
+      </div>
+    </div>
+  );
 }
