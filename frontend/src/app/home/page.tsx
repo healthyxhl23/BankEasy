@@ -11,11 +11,11 @@ export default function HomePage() {
   const router = useRouter();
 
   //Redirect to /signin if user is NOT authenticated
-  useEffect(() => {
-    if(status == "unauthenticated"){
-      router.push('/');
-    }
-  }, [status]);
+  // useEffect(() => {
+  //   if(status == "unauthenticated"){
+  //     router.push('/');
+  //   }
+  // }, [status]);
 
   const [accounts, setAccounts] = useState([{name: "Checking", balance: {current: 1787.76}}]);
   const [transactions, setTransactions] = useState([{name: "Starbucks's 84127 432-324-212 Ca", amount: 5.75, date: "2025-06-22", translation: "$5.75 spent at Starbucks coffee shop in California on June 22, 2025."},
