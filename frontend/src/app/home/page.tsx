@@ -1,7 +1,7 @@
 // app/home/page.tsx
 'use client';
 
-import { useSession, signOut } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -35,13 +35,20 @@ export default function HomePage() {
       const res = await fetch('/api/user/check-profile');
       const data = await res.json();
       
+      console.log('Profile check response:', data); // Debug log
+      
       if (data.newUser || !data.onboarded) {
-        // Redirect to onboarding if new user or not onboarded
-        router.push('/onboarding');
+        // Only redirect to onboarding if it's a new user
+        if (data.newUser) {
+          router.push('/onboarding');
+          return;
+        }
+        // Otherwise just set the onboarded status
+        setIsOnboarded(false);
       } else {
         setIsOnboarded(data.onboarded);
-        setLoading(false);
       }
+      setLoading(false);
     } catch (error) {
       console.error('Error checking profile:', error);
       setLoading(false);
@@ -66,14 +73,14 @@ export default function HomePage() {
       description: 'See all your bank transactions in one place',
       icon: '💳',
       href: '/transactions',
-                    available: isOnboarded,
+      available: isOnboarded,
     },
     {
       title: 'Balance Forecast',
       description: 'Predict your future balance based on spending patterns',
       icon: '📊',
       href: '/forecast',
-      available: session.user.onboarded,
+      available: isOnboarded, // Fixed: was session.user.onboarded
     },
     {
       title: 'Voice Assistant',
@@ -99,7 +106,7 @@ export default function HomePage() {
           {greeting}, {session.user.name?.split(' ')[0] || 'there'}! 👋
         </h1>
         <p className="text-gray-600">
-          {session.user.onboarded 
+          {isOnboarded 
             ? "Here's your financial overview"
             : "Complete your setup to access all features"}
         </p>
@@ -177,15 +184,7 @@ export default function HomePage() {
         ))}
       </div>
 
-      {/* Sign Out Button */}
-      <div className="mt-12 text-center">
-        <button
-          onClick={() => signOut({ callbackUrl: '/' })}
-          className="text-gray-500 hover:text-gray-700 text-sm"
-        >
-          Sign Out
-        </button>
-      </div>
+
     </div>
   );
 }

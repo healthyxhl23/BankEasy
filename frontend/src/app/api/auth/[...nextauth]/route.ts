@@ -1,10 +1,8 @@
-// app/api/auth/[...nextauth]/route.ts
 import NextAuth, { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { JWT } from "next-auth/jwt";
 import { Session } from "next-auth";
 
-// Extend the built-in session types
 type SessionUser = {
   id: string;
   name?: string | null;
@@ -22,10 +20,24 @@ export const authOptions: NextAuthOptions = {
   ],
   secret: process.env.NEXTAUTH_SECRET,
   debug: true,
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
+  },
   callbacks: {
     async signIn({ user, account, profile }) {
       console.log("SignIn callback - User:", user.email);
-      // Always allow sign in - we'll handle profile creation later
       return true;
     },
     async jwt({ token, user }) {
@@ -38,19 +50,22 @@ export const authOptions: NextAuthOptions = {
       if (session.user && token.sub) {
         const sessionUser = session.user as SessionUser;
         sessionUser.id = token.sub;
-        // Default to not onboarded - we'll check this separately
         sessionUser.onboarded = false;
       }
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Always redirect to home after sign in
       return `${baseUrl}/home`;
     }
   },
   pages: {
     signIn: '/signin',
     error: '/auth/error',
+  },
+  events: {
+    async signOut(message) {
+      console.log('User signed out', message);
+    },
   },
 };
 
