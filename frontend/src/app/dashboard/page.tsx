@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
+import { useRouter } from 'next/navigation';
 
 interface Account {
   account_id: string;
@@ -53,6 +54,7 @@ interface Identity {
 }
 
 export default function PlaidDashboard() {
+  const router = useRouter();
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -322,8 +324,17 @@ export default function PlaidDashboard() {
         {activeTab === 'accounts' && (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {accounts.map((account) => (
-              <div key={account.account_id} className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{account.name}</h3>
+              <div 
+                key={account.account_id} 
+                className="bg-white rounded-lg shadow p-6 cursor-pointer transition-all hover:shadow-lg hover:scale-105"
+                onClick={() => router.push(`/dashboard/account/${account.account_id}`)}
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">{account.name}</h3>
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
                 <p className="text-sm text-gray-500 mb-4">
                   {account.type} • {account.subtype} • ****{account.mask}
                 </p>
@@ -405,7 +416,10 @@ export default function PlaidDashboard() {
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            <div>
+                            <div 
+                              className="cursor-pointer hover:text-blue-600 transition-colors"
+                              onClick={() => router.push(`/dashboard/account/${transaction.account_id}`)}
+                            >
                               <div className="font-medium">{account?.name || 'Unknown Account'}</div>
                               <div className="text-xs text-gray-500">****{account?.mask}</div>
                             </div>
