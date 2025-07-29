@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
 import { useRouter } from 'next/navigation';
+import TransactionDetailModal from '@/app/components/dashboard/TransactionDetailModal';
 
 interface Account {
   account_id: string;
@@ -63,6 +64,7 @@ export default function PlaidDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'accounts' | 'transactions' | 'identity'>('accounts');
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
   // Fetch link token
   const fetchLinkToken = useCallback(async () => {
@@ -267,6 +269,15 @@ export default function PlaidDashboard() {
           <h1 className="text-3xl font-bold text-gray-900">Account Dashboard</h1>
           <div className="flex gap-4">
             <button
+              onClick={() => router.push('/dashboard/assistant')}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+              Financial Assistant
+            </button>
+            <button
               onClick={() => fetchAccountData(accessToken!)}
               disabled={loading}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
@@ -385,7 +396,7 @@ export default function PlaidDashboard() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Date
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">
                         Description
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -403,22 +414,36 @@ export default function PlaidDashboard() {
                     {transactions.slice(0, 20).map((transaction) => {
                       const account = accounts.find(acc => acc.account_id === transaction.account_id);
                       return (
-                        <tr key={transaction.transaction_id}>
+                        <tr 
+                          key={transaction.transaction_id}
+                          className="hover:bg-gray-50 cursor-pointer transition-colors group relative"
+                          onClick={() => setSelectedTransaction(transaction)}
+                        >
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {formatDate(transaction.date)}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {transaction.merchant_name || transaction.name || 'Unknown'}
-                            {transaction.pending && (
-                              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                                Pending
+                          <td className="px-6 py-4 text-sm text-gray-900 relative">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="truncate">
+                                {transaction.merchant_name || transaction.name || 'Unknown'}
+                                {transaction.pending && (
+                                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    Pending
+                                  </span>
+                                )}
                               </span>
-                            )}
+                              <span className="text-blue-600 text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap flex-shrink-0">
+                                View details →
+                              </span>
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             <div 
                               className="cursor-pointer hover:text-blue-600 transition-colors"
-                              onClick={() => router.push(`/dashboard/account/${transaction.account_id}`)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/dashboard/account/${transaction.account_id}`);
+                              }}
                             >
                               <div className="font-medium">{account?.name || 'Unknown Account'}</div>
                               <div className="text-xs text-gray-500">****{account?.mask}</div>
@@ -557,6 +582,13 @@ export default function PlaidDashboard() {
             )}
           </div>
         )}
+
+        {/* Transaction Detail Modal */}
+        <TransactionDetailModal 
+          transaction={selectedTransaction}
+          account={accounts.find(acc => acc.account_id === selectedTransaction?.account_id)}
+          onClose={() => setSelectedTransaction(null)}
+        />
       </div>
     </main>
   );

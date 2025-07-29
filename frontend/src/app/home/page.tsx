@@ -35,7 +35,7 @@ export default function HomePage() {
       const res = await fetch('/api/user/check-profile');
       const data = await res.json();
       
-      console.log('Profile check response:', data); // Debug log
+      // console.log('Profile check response:', data); // Debug log
       
       if (data.newUser || !data.onboarded) {
         // Only redirect to onboarding if it's a new user
@@ -50,7 +50,7 @@ export default function HomePage() {
       }
       setLoading(false);
     } catch (error) {
-      console.error('Error checking profile:', error);
+      // console.error('Error checking profile:', error);
       setLoading(false);
     }
   };

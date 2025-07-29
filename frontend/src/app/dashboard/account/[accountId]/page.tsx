@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import TransactionDetailModal from '@/app/components/dashboard/TransactionDetailModal';
 
 interface Account {
   account_id: string;
@@ -44,6 +45,7 @@ export default function AccountDetailPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'transactions'>('overview');
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
   useEffect(() => {
     const fetchAccountDetails = async () => {
@@ -306,7 +308,7 @@ export default function AccountDetailPage() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Date
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">
                         Description
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -319,17 +321,28 @@ export default function AccountDetailPage() {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {transactions.map((transaction) => (
-                      <tr key={transaction.transaction_id}>
+                      <tr 
+                        key={transaction.transaction_id}
+                        className="hover:bg-gray-50 cursor-pointer transition-colors group relative"
+                        onClick={() => setSelectedTransaction(transaction)}
+                      >
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {formatDate(transaction.date)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {transaction.merchant_name || transaction.name || 'Unknown'}
-                          {transaction.pending && (
-                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                              Pending
+                        <td className="px-6 py-4 text-sm text-gray-900 relative">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate">
+                              {transaction.merchant_name || transaction.name || 'Unknown'}
+                              {transaction.pending && (
+                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                  Pending
+                                </span>
+                              )}
                             </span>
-                          )}
+                            <span className="text-blue-600 text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap flex-shrink-0">
+                              View details →
+                            </span>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {(() => {
@@ -340,7 +353,40 @@ export default function AccountDetailPage() {
                                 .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                                 .join(' ');
                               
-                              return primaryCategory;
+                              const confidenceColor = {
+                                'HIGH': 'text-green-600',
+                                'MEDIUM': 'text-yellow-600',
+                                'LOW': 'text-gray-400'
+                              }[transaction.personal_finance_category.confidence_level] || 'text-gray-400';
+                              
+                              return (
+                                <div className="group/category relative cursor-help">
+                                  <div className="flex items-center">
+                                    <span>{primaryCategory}</span>
+                                    <svg 
+                                      className={`ml-1 w-3 h-3 ${confidenceColor}`} 
+                                      fill="currentColor" 
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <circle cx="10" cy="10" r="10" opacity="0.3"/>
+                                      <circle cx="10" cy="10" r="6" />
+                                    </svg>
+                                  </div>
+                                  <div className="absolute z-10 invisible group-hover/category:visible bg-gray-800 text-white text-xs rounded py-2 px-3 bottom-full left-0 mb-2 w-64">
+                                    <div className="font-medium mb-1">
+                                      {transaction.personal_finance_category.detailed
+                                        .toLowerCase()
+                                        .split('_')
+                                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                        .join(' ')}
+                                    </div>
+                                    <div className="text-gray-300">
+                                      Confidence: <span className={confidenceColor}>{transaction.personal_finance_category.confidence_level}</span>
+                                    </div>
+                                    <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-800"></div>
+                                  </div>
+                                </div>
+                              );
                             } else if (transaction.category && transaction.category.length > 0) {
                               return transaction.category[0];
                             } else {
@@ -361,6 +407,13 @@ export default function AccountDetailPage() {
             )}
           </div>
         )}
+
+        {/* Transaction Detail Modal */}
+        <TransactionDetailModal 
+          transaction={selectedTransaction}
+          account={account}
+          onClose={() => setSelectedTransaction(null)}
+        />
       </div>
     </main>
   );
