@@ -10,7 +10,7 @@ export default function SignInPage() {
 
   // Redirect to home if already signed in
   useEffect(() => {
-    if (session) router.replace('/');
+    if (session) router.replace('/home');
   }, [session, router]);
 
   return (
